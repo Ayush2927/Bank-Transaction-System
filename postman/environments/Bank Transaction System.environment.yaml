@@ -1,0 +1,8 @@
+name: Bank Transaction System
+values:
+  - key: baseUrl
+    value: 'http://localhost:8000'
+    enabled: true
+  - key: auth
+    value: ''
+    enabled: true
