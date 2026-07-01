@@ -1,5 +1,6 @@
-require('dotenv').config();
-const nodemailer = require('nodemailer');
+import dotenv from 'dotenv';
+dotenv.config();
+import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -39,4 +40,11 @@ const sendEmail = async (to, subject, text, html) => {
     }
 };
 
-export default { sendEmail, transporter };
+async function sendRegistrationMail(userEmail, name) {
+    const subject = 'Welcome to Bank Transaction System'
+    const text = `hello ${name}, \n\n Thank you for registering at Bank Transaction System. We are excited to have you on board!</p><p> Best regards, <br> The Backend Ledger team</p>`;
+    const html = `<p>hello ${name},</p><p> Thank you for registering at Bank Transaction System. We are excited to have you on board!</p><p> Best regards, <br> The Backend Ledger team</p>`;
+    await sendEmail(userEmail, subject, text, html);
+}
+
+export { sendRegistrationMail };
