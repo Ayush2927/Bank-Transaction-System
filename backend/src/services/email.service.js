@@ -47,4 +47,20 @@ async function sendRegistrationMail(userEmail, name) {
     await sendEmail(userEmail, subject, text, html);
 }
 
-export { sendRegistrationMail };
+async function sendtransactionMail(userEmail, name, amount, toAccount) {
+    const subject = `Transaction Successful`;
+    const text = `Hello ${name}, \n\n Your transaction of ${amount} to account ${toAccount} has been processed successfully.\n\n Best regards, \n The Backend Ledger team`;
+    const html = `<p>Hello ${name},</p><p> Your transaction of ${amount} to account ${toAccount} has been processed successfully.</p><p> Best regards, <br> The Backend Ledger team</p>`;
+    await sendEmail(userEmail, subject, text, html);
+}
+
+async function sendtransactionFailureMail(userEmail, name, amount, toAccount) {
+    const subject = 'Transaction Failed';
+    const text = `Hello ${name}, \n\n Your transaction of ${amount} to account ${toAccount} has failed to process.\n\n Best regards, \n The Backend Ledger team`;
+    const html = `<p>Hello ${name},</p><p> Your transaction of ${amount} to account ${toAccount} has failed to process.</p><p> Best regards, <br> The Backend Ledger team</p>`;
+    await sendEmail(userEmail, subject, text, html);
+}
+
+export { sendRegistrationMail, sendtransactionMail, sendtransactionFailureMail };
+
+
