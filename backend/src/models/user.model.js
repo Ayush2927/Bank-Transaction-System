@@ -22,6 +22,13 @@ const UserSchema = mongoose.Schema({
         required: [true, "password is required for creating an account"],
         minLength: [6, "password should contain more than 6 characters "],
         select: false
+    },
+
+    systemUser: {
+        type: Boolean,
+        default: false,
+        immutable: true,
+        select: false
     }
 },
     {
@@ -43,4 +50,4 @@ UserSchema.methods.comparePassword = async function (password) {
 
 const User = mongoose.model("User", UserSchema)
 
-export default User ;
+export default User;
