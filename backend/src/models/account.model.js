@@ -6,14 +6,14 @@ const accountSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         require: [true, "Account must be associated with a user"],
-        index:true
+        index: true
     },
 
     status: {
-        type:String,
+        type: String,
         enum: ["ACTIVE", "FROZEN", "CLOSED"],
         message: "Status can either be ACTIVE,FROZEN or CLOSED",
-        default:"ACTIVE"
+        default: "ACTIVE"
 
     },
 
@@ -27,46 +27,51 @@ const accountSchema = new mongoose.Schema({
 
 }, { timestamps: true })
 
-accountSchema.index({user:1,status:1})
+accountSchema.index({ user: 1, status: 1 })
 
-accountSchema.methods.getBalance=async function(){
-      const balanceData=await ledgerModel.aggregate([
-        { $match:{account:this._id}},
-        {$group:{
-            _id:null,
-            totalDebit:{
-                 $sum:{
-                    $cond:[
-                        {$eq:["$type","DEBIT"]},
-                        "$amount",
-                        0
-                    ]
-                 }
-            },
-            totalCredit:{
-                $sum:{
-                    $cond:[
-                        {$eq:["$type","CREDIT"]},
-                        "$amount",
-                        0
-                    ]
+accountSchema.methods.getBalance = async function (session = null) {
+
+    const options = session ? { session } : {};
+
+    const balanceData = await ledgerModel.aggregate([
+        { $match: { account: this._id } },
+        {
+            $group: {
+                _id: null,
+                totalDebit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$type", "DEBIT"] },
+                            "$amount",
+                            0
+                        ]
+                    }
+                },
+                totalCredit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$type", "CREDIT"] },
+                            "$amount",
+                            0
+                        ]
+                    }
                 }
             }
-        }},
+        },
 
         {
-            $project:{
-                _id:0,
-            balance:{$subtract:["$totalCredit","$totalDebit"]}          
-          }
+            $project: {
+                _id: 0,
+                balance: { $subtract: ["$totalCredit", "$totalDebit"] }
+            }
         }
-      ])
+    ], options)
 
-      if(balanceData.length===0){
+    if (balanceData.length === 0) {
         return 0;
-      }
+    }
 
-      return balanceData[0].balance;
+    return balanceData[0].balance;
 }
 
 const accountModel = mongoose.model("accountModel", accountSchema)

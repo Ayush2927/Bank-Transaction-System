@@ -57,31 +57,27 @@ async function createTransaction(req, res) {
     })
 
     if (isTransactionAlreadyExists) {
-        if (isTransactionAlreadyExists.status === "COMPLETED") {
+        if (isTransactionAlreadyExists.status === "COMPLETE") {
             return res.status(200).json({
-                message: "Transaction already processed",
+                message: "Transaction already processed successfully",
                 transaction: isTransactionAlreadyExists
             })
         }
 
         if (isTransactionAlreadyExists.status === "PENDING") {
-            return res.status(200).json({
-                message: "Transaction is still processing"
+            return res.status(409).json({
+                message: "Transaction with this idempotency key is currently being processed. Please wait"
             })
         }
 
-        if (isTransactionAlreadyExists.status === "FAILED") {
+        if (isTransactionAlreadyExists.status === "FAILED" || isTransactionAlreadyExists.status === "REVERSED") {
             return res.status(500).json({
-                message: "Transaction processing failed"
+                message: `Transaction previously ${isTransactionAlreadyExists.status.toLowerCase()}. Please use a new idempotency key to retry`
             })
         }
 
 
-        if (isTransactionAlreadyExists.status === "REVERSED") {
-            return res.status(500).json({
-                message: "Transaction was reversed, please retry"
-            })
-        }
+
     }
 
     /**
@@ -94,29 +90,36 @@ async function createTransaction(req, res) {
         })
     }
 
-    /**
-     * 4.Derive Sender balance from ledger
-     */
 
-    const balance = await fromUserAccount.getBalance()
 
-    if (balance < amount) {
-        res.staus(400).json({
-            message: `Insufficient balance, current balance is ${balance}. Requested amount is ${amount}.`
-        })
-    }
+
+
+
 
     /**
      * 5.Create transaction(PENDING)
      */
 
     let transaction;
+    const session = await mongoose.startSession();
     try {
 
-        const session = await mongoose.startSession()
+
         session.startTransaction();
 
-        const transaction = (await transactionModel.create([{
+        const balance = await fromUserAccount.getBalance(session)
+
+        if (balance < amount) {
+            await session.abortTransaction();
+            session.endSession();
+            res.status(400).json({
+                message: `Insufficient balance, current balance is ${balance}. Requested amount is ${amount}.`
+            })
+
+        }
+
+
+        transaction = (await transactionModel.create([{
             fromAccount,
             toAccount,
             amount,
@@ -140,7 +143,7 @@ async function createTransaction(req, res) {
 
         await transactionModel.findOneAndUpdate(
             { _id: transaction._id },
-            { status: "CPMPLETE" },
+            { status: "COMPLETE" },
             { session }
         )
 
@@ -148,8 +151,17 @@ async function createTransaction(req, res) {
         session.endSession()
 
     } catch (error) {
-        return res.status(400).json({
-            message: "Transaction is pending due to some issues, retry after some time"
+        await session.abortTransaction();
+        session.endSession();
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Duplicate transaction request detected, Transaction is already in progress of completed."
+            })
+        }
+        return res.status(500).json({
+            message: "Transaction is failed due to asystem error, Please try again",
+            error: error.message
         })
     }
 
@@ -235,4 +247,28 @@ async function createInitialFundsTransaction(req, res) {
     })
 }
 
-export { createTransaction, createInitialFundsTransaction }
+async function getTransactionHistory(req, res) {
+    try {
+        const userAccounts = await accountModel.find({ user: req.user._id });
+        const accountIds = userAccounts.map(acc => acc._id);
+
+        const transactions = await transactionModel.find({
+            $or: [
+                { fromAccount: { $in: accountIds } },
+                { toAccount: { $in: accountIds } }
+            ]
+        })
+            .sort({ createdAt: -1 })
+            .populate("fromAccount")
+            .populate("toAccount");
+
+        return res.status(200).json({
+            transactions
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Error fetching transaction history" });
+    }
+}
+
+export { createTransaction, createInitialFundsTransaction, getTransactionHistory }

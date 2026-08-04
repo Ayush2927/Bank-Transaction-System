@@ -18,8 +18,18 @@ async function getUserAccounts(req, res) {
         user: req.user._id
     })
 
+    const accountsWithBalance = await Promise.all(
+        accounts.map(async (acc) => {
+            const balance = await acc.getBalance();
+            return {
+                ...acc.toObject(),
+                balance
+            }
+        })
+    );
+
     res.status(200).json({
-        accounts
+        accounts: accountsWithBalance
     })
 }
 
