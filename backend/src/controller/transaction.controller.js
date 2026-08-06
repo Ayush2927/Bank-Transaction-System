@@ -249,25 +249,64 @@ async function createInitialFundsTransaction(req, res) {
 
 async function getTransactionHistory(req, res) {
     try {
-        const userAccounts = await accountModel.find({ user: req.user._id });
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
+
+        const { status, startDate, endDate } = req.query;
+
+        const userAccounts = await accountModel.find({
+            user: req.user._id
+        })
+
         const accountIds = userAccounts.map(acc => acc._id);
 
-        const transactions = await transactionModel.find({
+        const filter = {
             $or: [
                 { fromAccount: { $in: accountIds } },
                 { toAccount: { $in: accountIds } }
             ]
-        })
+        };
+
+
+        if (status) {
+            filter.status = status;
+        }
+
+        if (startDate || endDate) {
+            filter.createdAt = {};
+
+            if (startDate) filter.createdAt.$gte = new Date(startDate);
+
+            if (endDate) filter.createdAt.$lte = new Date(endDate);
+        }
+
+        const totalTransactions = await transactionModel.countDocuments(filter);
+
+        const totalPages = Math.ceil(totalTransactions / limit);
+
+        const skip = (page - 1) * limit;
+
+        const transactions = await transactionModel.find(filter)
             .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
             .populate("fromAccount")
-            .populate("toAccount");
+            .populate("toAccount")
 
         return res.status(200).json({
-            transactions
-        });
+            transactions,
+            pagination: {
+                totalTransactions,
+                totalPages,
+                currentPage: page,
+                limit
+            }
+        })
+
+
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Error fetching transaction history" });
+        return res.status(500).json({ message: "Error fetching transaction history", error: error.message });
     }
 }
 

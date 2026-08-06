@@ -73,23 +73,34 @@ async function userLogin(req, res) {
 }
 
 async function userLogout(req, res) {
-    const token = req.cookies.token || req.headers.authorization?.split("")[1]
+    try {
+        const token = req.cookies.token || req.headers.authorization?.split(" ")[1]
 
-    if (!token) {
-        return res.status(400).json({
-            message: "User logged Out successfully"
+        if (!token) {
+            return res.status(400).json({
+                message: "No token provided to logout"
+            })
+        }
+
+        res.clearCookie("token")
+
+        await tokenBlacklistModel.create({
+            token: token
+        }).catch(err => {
+            if (err.code !== 11000) {
+                throw err;
+            }
+        })
+
+        res.status(200).json({
+            message: "User logged Out successfully, token invalidated"
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error logging out",
+            error: error.message
         })
     }
-
-    res.cookie("token", "")
-
-    await tokenBlacklistModel.create({
-        token: token
-    })
-
-    res.status(200).json({
-        message: "User logged Out successfully"
-    })
 
 }
 
