@@ -6,6 +6,7 @@ import cookie_parser from "cookie-parser"
 import cors from "cors";
 import { globalLimiter } from "./middleware/rateLimiter.js";
 import { contactRouter } from "./routes/contact.routes.js";
+import { vaultRouter } from "./routes/vault.routes.js";
 
 const app = express();
 
@@ -24,5 +25,6 @@ app.use("/api/auth", authRouter)
 app.use("/api/accounts", accountRouter);
 app.use("/api/transactions", transactionRouter)
 app.use("/api/contacts", contactRouter)
+app.use("/api/vaults", vaultRouter)
 
 export { app };
