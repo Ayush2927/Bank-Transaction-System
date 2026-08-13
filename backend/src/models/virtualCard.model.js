@@ -36,7 +36,7 @@ const virtualCardSchema = new mongoose.Schema({
         required: true
     },
     isFrozen: {
-        type: boolean,
+        type: Boolean,
         default: false
     },
     monthlyLimit: {

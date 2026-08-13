@@ -7,7 +7,7 @@ import cors from "cors";
 import { globalLimiter } from "./middleware/rateLimiter.js";
 import { contactRouter } from "./routes/contact.routes.js";
 import { vaultRouter } from "./routes/vault.routes.js";
-
+import { virtualCardRouter } from "./routes/virtualCard.routes.js";
 const app = express();
 
 app.use(cors({
@@ -26,5 +26,5 @@ app.use("/api/accounts", accountRouter);
 app.use("/api/transactions", transactionRouter)
 app.use("/api/contacts", contactRouter)
 app.use("/api/vaults", vaultRouter)
-
+app.use("/api/cards", virtualCardRouter)
 export { app };
