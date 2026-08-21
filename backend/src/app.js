@@ -9,6 +9,7 @@ import { contactRouter } from "./routes/contact.routes.js";
 import { vaultRouter } from "./routes/vault.routes.js";
 import { virtualCardRouter } from "./routes/virtualCard.routes.js";
 import { analyticsRouter } from "./routes/analytics.routes.js";
+import { scheduledRouter } from "./routes/scheduledTransfer.routes.js";
 const app = express();
 
 app.use(cors({
@@ -29,4 +30,5 @@ app.use("/api/contacts", contactRouter)
 app.use("/api/vaults", vaultRouter)
 app.use("/api/cards", virtualCardRouter)
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/scheduled-transfers", scheduledRouter);
 export { app };
