@@ -47,7 +47,8 @@ async function createCard(req, res) {
         };
 
         const cardNumber = generate16DigitNumber();
-        const cvv = generateCVV();
+        const rawCVV = generateCVV();
+        const hashedCVV = crypto.createHash("sha256").update(rawCVV).digest("hex");
         const expiryDate = generateExpiryDate();
 
         const virtualCard = await virtualCardModel.create({
@@ -56,14 +57,17 @@ async function createCard(req, res) {
             cardNumber,
             cardHolderName: req.user.name.toUpperCase(),
             expiryDate,
-            cvv,
+            cvv: hashedCVV, // Hashed at rest in MongoDB!
             isFrozen: false,
             monthlyLimit: monthlyLimit ? Number(monthlyLimit) : 1000
         });
 
         return res.status(201).json({
             message: "Virtual debit card created successfully",
-            virtualCard
+            virtualCard: {
+                ...virtualCard.toObject(),
+                cvv: rawCVV // Return raw CVV once on creation for user display
+            }
         })
 
     } catch (error) {
@@ -148,7 +152,9 @@ async function chargeCard(req, res) {
             })
         };
 
-        if (virtualCard.cvv !== cvv || virtualCard.expiryDate !== expiryDate) {
+        const hashedInputCVV = crypto.createHash("sha256").update(cvv).digest("hex");
+
+        if (virtualCard.cvv !== hashedInputCVV || virtualCard.expiryDate !== expiryDate) {
             return res.status(400).json({
                 message: "Invalid cvv or expiryDate. Charge Declined."
             })

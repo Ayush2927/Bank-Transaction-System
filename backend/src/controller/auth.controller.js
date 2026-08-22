@@ -1,13 +1,18 @@
 import User from "../models/user.model.js";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { sendRegistrationMail, sendOTPMail } from "../services/email.service.js";
 import { tokenBlacklistModel } from "../models/blacklist.model.js";
 
-//Generate 6-digit otp
+// Helper 1: Generate 6-digit OTP
 function generate6DigitOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Helper 2: Hash OTP using SHA-256 for secure storage at rest
+function hashOTP(otp) {
+    return crypto.createHash("sha256").update(otp).digest("hex");
+}
 
 //User register controller
 //Post /api/auth/register
@@ -67,14 +72,15 @@ async function userLogin(req, res) {
 
     // 🔐 If 2FA is ENABLED: Do not issue JWT yet. Send OTP to email!
     if (user.is2FAEnabled) {
-        const otp = generate6DigitOTP();
+        const rawOTP = generate6DigitOTP();
+        const hashedOTP = hashOTP(rawOTP);
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-        user.otpCode = otp;
+        user.otpCode = hashedOTP; // Hashed at rest in MongoDB!
         user.otpExpiresAt = expiresAt;
         await user.save();
 
-        await sendOTPMail(user.email, user.name, otp);
+        await sendOTPMail(user.email, user.name, rawOTP);
 
         return res.status(200).json({
             require2FA: true,
@@ -138,14 +144,15 @@ async function sendOTP(req, res) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        const otp = generate6DigitOTP();
+        const rawOTP = generate6DigitOTP();
+        const hashedOTP = hashOTP(rawOTP);
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-        user.otpCode = otp;
+        user.otpCode = hashedOTP; // Hashed at rest in MongoDB!
         user.otpExpiresAt = expiresAt;
         await user.save();
 
-        await sendOTPMail(user.email, user.name, otp);
+        await sendOTPMail(user.email, user.name, rawOTP);
 
         return res.status(200).json({
             message: "2FA OTP verification code sent to your email"
@@ -171,7 +178,9 @@ async function verifyOTP(req, res) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        if (!user.otpCode || user.otpCode !== otp) {
+        const hashedInputOTP = hashOTP(otp);
+
+        if (!user.otpCode || user.otpCode !== hashedInputOTP) {
             return res.status(400).json({ message: "Invalid OTP code" });
         }
 
