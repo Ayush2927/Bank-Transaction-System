@@ -61,6 +61,14 @@ async function sendtransactionFailureMail(userEmail, name, amount, toAccount) {
     await sendEmail(userEmail, subject, text, html);
 }
 
-export { sendRegistrationMail, sendtransactionMail, sendtransactionFailureMail };
+async function sendOTPMail(userEmail, name, otp) {
+    const subject = "Your 2FA Verification Code";
+    const text = `Hello ${name},\n\nYour 6-digit 2FA verification code is: ${otp}\nThis code will expire in 10 minutes.\n\nBest regards,\nThe Backend Ledger team`;
+    const html = `<p>Hello ${name},</p><p>Your 6-digit 2FA verification code is: <h2 style="color: #2563eb; letter-spacing: 4px;"><strong>${otp}</strong></h2></p><p>This code will expire in 10 minutes.</p><p>Best regards,<br>The Backend Ledger team</p>`;
+
+    await sendEmail(userEmail, subject, text, html);
+}
+
+export { sendRegistrationMail, sendtransactionMail, sendtransactionFailureMail, sendOTPMail };
 
 

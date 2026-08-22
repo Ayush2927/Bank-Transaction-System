@@ -29,6 +29,21 @@ const UserSchema = mongoose.Schema({
         default: false,
         immutable: true,
         select: false
+    },
+
+    is2FAEnabled: {
+        type: Boolean,
+        default: false
+    },
+
+    otpCode: {
+        type: String,
+        select: false
+    },
+
+    otpExpiresAt: {
+        type: Date,
+        select: false
     }
 },
     {
