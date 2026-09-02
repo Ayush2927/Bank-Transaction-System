@@ -1,6 +1,6 @@
 import express from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { createScheduledTransfer, getUserScheduledTransfers, cancelScheduledTransfers } from "../controller/scheduledTransferController.js";
+import { createScheduledTransfer, getUserScheduledTransfers, cancelScheduledTransfers } from "../controller/scheduledTransfer.controller.js";
 
 const scheduledRouter = express.Router();
 

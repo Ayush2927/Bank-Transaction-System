@@ -1,15 +1,33 @@
 import { accountModel } from "../models/account.model.js";
 
+function generateAccountNumber() {
+    return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+}
+
 
 async function createAccount(req, res) {
-    const user = req.user;
-    const account = await accountModel.create({
-        user: user._id
-    })
+    try {
 
-    res.status(201).json({
-        account
-    })
+
+        const user = req.user;
+        const { accountName, accountType } = req.body;
+
+        const account = await accountModel.create({
+            user: user._id,
+            accountNumber: generateAccountNumber(),
+            accountName: accountName || "Primary Account",
+            accountType: accountType || "CURRENT"
+        })
+
+        res.status(201).json({
+            account
+        })
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error creating account",
+            error: error.message
+        })
+    }
 }
 
 

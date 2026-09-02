@@ -12,7 +12,7 @@ const API_BASE_URL = "http://localhost:8000/api";
 
 async function runConcurrencyStressTest() {
     console.log("==========================================================");
-    console.log("🚀 STARTING CONCURRENCY & DOUBLE-SPEND STRESS TEST SUITE");
+    console.log(" STARTING CONCURRENCY & DOUBLE-SPEND STRESS TEST SUITE");
     console.log("==========================================================\n");
 
     try {
@@ -83,23 +83,23 @@ async function runConcurrencyStressTest() {
         const failedTransfers = results.filter(r => r.status === "FAILED");
 
         console.log("\n==========================================================");
-        console.log("📊 EMPIRICAL STRESS TEST RESULTS & VERIFICATION BENCHMARK");
+        console.log(" EMPIRICAL STRESS TEST RESULTS & VERIFICATION BENCHMARK");
         console.log("==========================================================");
-        console.log(`⏱️ Execution Time:             ${duration} ms`);
-        console.log(`📡 Total Concurrent Threads:   ${CONCURRENT_REQUESTS}`);
-        console.log(`✅ Successful Transfers (200):  ${successfulTransfers.length}`);
-        console.log(`🛑 Blocked Overdrafts (400/409): ${failedTransfers.length}`);
+        console.log(` Execution Time:             ${duration} ms`);
+        console.log(` Total Concurrent Threads:   ${CONCURRENT_REQUESTS}`);
+        console.log(` Successful Transfers (200):  ${successfulTransfers.length}`);
+        console.log(` Blocked Overdrafts (400/409): ${failedTransfers.length}`);
 
         // 5. Final Verification Query
         const finalSourceRes = await axios.get(`${API_BASE_URL}/accounts`, authHeaders);
         const finalBalance = finalSourceRes.data.accounts.find(a => a._id === sourceAccountId).balance;
 
-        console.log(`\n💰 Source Account Final Balance: $${finalBalance}`);
+        console.log(`\n Source Account Final Balance: $${finalBalance}`);
 
         if (successfulTransfers.length === 1 && finalBalance === 0) {
-            console.log("\n🎉 CONCURRENCY TEST PASSED! 100% ACID ISOLATION COMPLIANT (ZERO DOUBLE-SPEND DISCREPANCY).");
+            console.log("\n CONCURRENCY TEST PASSED! 100% ACID ISOLATION COMPLIANT (ZERO DOUBLE-SPEND DISCREPANCY).");
         } else {
-            console.log("\n❌ CONCURRENCY TEST FAILED! Double-spend anomaly detected.");
+            console.log("\n CONCURRENCY TEST FAILED! Double-spend anomaly detected.");
         }
         console.log("==========================================================\n");
 

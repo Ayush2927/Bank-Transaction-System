@@ -9,6 +9,24 @@ const accountSchema = new mongoose.Schema({
         index: true
     },
 
+    accountName: {
+        type: String,
+        trim: true,
+        default: "Primary account"
+
+    },
+    accountNumber: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+
+    accountType: {
+        type: String,
+        enum: ["SAVINGS", "CURRENT", "SALARY", "BUSINESS"],
+        default: "SAVINGS"
+    },
+
     status: {
         type: String,
         enum: ["ACTIVE", "FROZEN", "CLOSED"],

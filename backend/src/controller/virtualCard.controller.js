@@ -201,7 +201,7 @@ async function chargeCard(req, res) {
 
 
         return res.status(200).json({
-            message: `Successfully charged $${chargeAmount} at ${merchantName}!`,
+            message: `Successfully charged ₹${chargeAmount} at ${merchantName}!`,
             remainingBalance: balance - chargeAmount,
             status: "APPROVED"
         });
@@ -218,5 +218,5 @@ async function chargeCard(req, res) {
     }
 }
 
-export { createCard, getUserCards, toggleFreezeCard, chargeCard };
+export { createCard, getUserVirtualCards, toggleFreezeCard, chargeCard };
 

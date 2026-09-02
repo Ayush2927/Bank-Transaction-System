@@ -70,7 +70,7 @@ async function userLogin(req, res) {
         })
     }
 
-    // 🔐 If 2FA is ENABLED: Do not issue JWT yet. Send OTP to email!
+
     if (user.is2FAEnabled) {
         const rawOTP = generate6DigitOTP();
         const hashedOTP = hashOTP(rawOTP);

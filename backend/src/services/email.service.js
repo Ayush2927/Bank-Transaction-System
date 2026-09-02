@@ -16,9 +16,9 @@ const transporter = nodemailer.createTransport({
 // Verify the connection configuration
 transporter.verify((error, success) => {
     if (error) {
-        console.error('Error connecting to email server:', error);
+        console.warn('⚠️ Email Service Warning: OAuth2 Refresh Token expired or revoked (invalid_grant). Update REFRESH_TOKEN or use EMAIL_PASS in backend/.env.');
     } else {
-        console.log('Email server is ready to send messages');
+        console.log('✅ Email server is ready to send messages');
     }
 });
 

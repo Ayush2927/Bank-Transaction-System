@@ -290,8 +290,16 @@ async function getTransactionHistory(req, res) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .populate("fromAccount")
-            .populate("toAccount")
+            .populate({
+                path: "fromAccount",
+                select: "accountNumber accountName user",
+                populate: { path: "user", select: "name email" }
+            })
+            .populate({
+                path: "toAccount",
+                select: "accountNumber accountName user",
+                populate: { path: "user", select: "name email" }
+            })
 
         return res.status(200).json({
             transactions,
