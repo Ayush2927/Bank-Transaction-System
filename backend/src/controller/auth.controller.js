@@ -231,4 +231,23 @@ async function toggle2FA(req, res) {
     }
 }
 
-export { userRegister, userLogin, userLogout, sendOTP, verifyOTP, toggle2FA }
+async function getMe(req, res) {
+    try {
+        return res.status(200).json({
+            user: {
+                id: req.user._id,
+                email: req.user.email,
+                name: req.user.name,
+                is2FAEnabled: req.user.is2FAEnabled || false,
+                createdAt: req.user.createdAt
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error fetching user profile",
+            error: error.message
+        });
+    }
+}
+
+export { userRegister, userLogin, userLogout, sendOTP, verifyOTP, toggle2FA, getMe };

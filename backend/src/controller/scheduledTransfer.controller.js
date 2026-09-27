@@ -1,5 +1,6 @@
 import { scheduledTransferModel } from "../models/scheduledTransfer.model.js";
 import { accountModel } from "../models/account.model.js";
+import mongoose from "mongoose";
 
 async function createScheduledTransfer(req, res) {
     try {
@@ -19,18 +20,30 @@ async function createScheduledTransfer(req, res) {
             })
         };
 
-        const destAccount = await accountModel.findOne({ _id: toAccount });
+        const isObjectId = mongoose.Types.ObjectId.isValid(toAccount);
+        const destAccount = await accountModel.findOne({
+            $or: [
+                ...(isObjectId ? [{ _id: toAccount }] : []),
+                { accountNumber: toAccount }
+            ]
+        });
 
         if (!destAccount) {
             return res.status(404).json({
-                message: "Destination account not found"
+                message: "Destination account not found. Please enter a valid 10-digit Account Number or Account ID."
             })
         };
 
+        if (sourceAccount._id.toString() === destAccount._id.toString()) {
+            return res.status(400).json({
+                message: "Source and destination accounts cannot be the same"
+            });
+        }
+
         const scheduled = await scheduledTransferModel.create({
             user: req.user._id,
-            fromAccount,
-            toAccount,
+            fromAccount: sourceAccount._id,
+            toAccount: destAccount._id,
             amount: Number(amount),
             frequency: frequency || "MONTHLY",
             nextExecutionDate: new Date(executionDate),
@@ -40,7 +53,6 @@ async function createScheduledTransfer(req, res) {
         return res.status(201).json({
             message: "Scheduled transfer created successfully",
             scheduled
-
         })
 
     } catch (error) {
@@ -55,9 +67,16 @@ async function createScheduledTransfer(req, res) {
 async function getUserScheduledTransfers(req, res) {
     try {
         const scheduledTransfers = await scheduledTransferModel.find({ user: req.user._id })
-            .populate("fromAccount")
-            .populate("toAccount")
-            .sort({ nextExecutionDate: 1 })
+            .populate({
+                path: "fromAccount",
+                select: "accountName accountNumber accountType"
+            })
+            .populate({
+                path: "toAccount",
+                select: "accountName accountNumber accountType",
+                populate: { path: "user", select: "name email" }
+            })
+            .sort({ nextExecutionDate: 1 });
 
         return res.status(200).json({
             scheduledTransfers
@@ -100,4 +119,23 @@ async function cancelScheduledTransfers(req, res) {
     }
 }
 
-export { createScheduledTransfer, getUserScheduledTransfers, cancelScheduledTransfers }
+async function runDueTransfersNow(req, res) {
+    try {
+        const { executeDueTransfers } = await import("../services/cron.service.js");
+        const result = await executeDueTransfers(req.user._id);
+
+        return res.status(200).json({
+            message: result.processed > 0
+                ? `Successfully processed ${result.processed} due transfer(s)!`
+                : "No scheduled transfers are currently due.",
+            ...result
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error executing due transfers",
+            error: error.message
+        });
+    }
+}
+
+export { createScheduledTransfer, getUserScheduledTransfers, cancelScheduledTransfers, runDueTransfersNow };

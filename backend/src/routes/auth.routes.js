@@ -1,5 +1,5 @@
-import express from "express"
-import { userRegister, userLogin, userLogout, sendOTP, verifyOTP, toggle2FA } from "../controller/auth.controller.js";
+import express from "express";
+import { userRegister, userLogin, userLogout, sendOTP, verifyOTP, toggle2FA, getMe } from "../controller/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -13,6 +13,9 @@ router.post("/login", authLimiter, userLogin);
 
 // Post /api/auth/logout
 router.post("/logout", userLogout);
+
+// Profile: Get Current Authenticated User
+router.get("/me", authMiddleware, getMe);
 
 // 🔐 2FA Routes
 router.post("/send-otp", sendOTP);

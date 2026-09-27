@@ -37,13 +37,17 @@ async function createTransaction(req, res) {
         _id: fromAccount
     })
 
+    const isToObjectId = mongoose.Types.ObjectId.isValid(toAccount);
     const toUserAccount = await accountModel.findOne({
-        _id: toAccount
-    })
+        $or: [
+            ...(isToObjectId ? [{ _id: toAccount }] : []),
+            { accountNumber: toAccount }
+        ]
+    });
 
     if (!fromUserAccount || !toUserAccount) {
         return res.status(400).json({
-            message: "Invalid fromAccount or toAccount"
+            message: "Invalid fromAccount or toAccount. Check destination account number."
         })
     }
 
@@ -120,22 +124,22 @@ async function createTransaction(req, res) {
 
 
         transaction = (await transactionModel.create([{
-            fromAccount,
-            toAccount,
+            fromAccount: fromUserAccount._id,
+            toAccount: toUserAccount._id,
             amount,
             idempotencyKey,
             status: "PENDING"
         }], { session }))[0];
 
         const debitLedgerEntry = await ledgerModel.create([{
-            account: fromAccount,
+            account: fromUserAccount._id,
             amount: amount,
             transaction: transaction._id,
             type: "DEBIT"
         }], { session })
 
         const creditLedgerEntry = await ledgerModel.create([{
-            account: toAccount,
+            account: toUserAccount._id,
             amount: amount,
             transaction: transaction._id,
             type: "CREDIT"

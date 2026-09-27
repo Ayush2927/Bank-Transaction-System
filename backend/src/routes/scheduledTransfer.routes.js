@@ -1,10 +1,11 @@
 import express from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { createScheduledTransfer, getUserScheduledTransfers, cancelScheduledTransfers } from "../controller/scheduledTransfer.controller.js";
+import { createScheduledTransfer, getUserScheduledTransfers, cancelScheduledTransfers, runDueTransfersNow } from "../controller/scheduledTransfer.controller.js";
 
 const scheduledRouter = express.Router();
 
 scheduledRouter.post("/", authMiddleware, createScheduledTransfer);
+scheduledRouter.post("/execute-due", authMiddleware, runDueTransfersNow);
 scheduledRouter.get("/", authMiddleware, getUserScheduledTransfers);
 scheduledRouter.delete("/:id", authMiddleware, cancelScheduledTransfers);
 
