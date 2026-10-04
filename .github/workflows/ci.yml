@@ -1,0 +1,78 @@
+name: Bank Ledger CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ==========================================
+  # JOB 1: Backend Quality Gate (Express + Ledger Engine)
+  # ==========================================
+  backend-ci:
+    name: Backend Quality Gate (Express + Ledger Engine)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: npm ci
+
+      - name: Validate Backend Syntax & Integrity
+        run: |
+          node --check server.js
+          node --check src/app.js
+          node --check src/services/cron.service.js
+          node --check src/controller/transaction.controller.js
+          node --check src/controller/virtualCard.controller.js
+          node --check src/controller/scheduledTransfer.controller.js
+          node --check src/controller/vault.controller.js
+          node --check src/controller/auth.controller.js
+
+  # ==========================================
+  # JOB 2: Frontend Quality Gate (React + Vite)
+  # (Automatically activates when frontend is pushed)
+  # ==========================================
+  frontend-ci:
+    name: Frontend Quality Gate (React + Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Detect if Frontend is present
+        id: check_frontend
+        run: |
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+            echo "present=true" >> $GITHUB_OUTPUT
+          else
+            echo "present=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js v20
+        if: steps.check_frontend.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        if: steps.check_frontend.outputs.present == 'true'
+        run: cd frontend && npm ci
+
+      - name: Verify TypeScript & Build
+        if: steps.check_frontend.outputs.present == 'true'
+        run: cd frontend && npm run build
