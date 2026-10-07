@@ -17,13 +17,16 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
     if (error) {
         console.warn('⚠️ Email Service Warning: OAuth2 Refresh Token expired or revoked (invalid_grant). Update REFRESH_TOKEN or use EMAIL_PASS in backend/.env.');
-    } else {
-        console.log('✅ Email server is ready to send messages');
+    } else if (process.env.NODE_ENV !== "test") {
+        console.log('[INFO] Email server connection verified');
     }
 });
 
 // Function to send email
 const sendEmail = async (to, subject, text, html) => {
+    if (process.env.NODE_ENV === "test") {
+        return { messageId: "mock-test-email-id" };
+    }
     try {
         const info = await transporter.sendMail({
             from: `"Bank-Transaction" <${process.env.EMAIL_USER}>`, // sender address

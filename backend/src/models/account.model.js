@@ -48,10 +48,7 @@ const accountSchema = new mongoose.Schema({
 accountSchema.index({ user: 1, status: 1 })
 
 accountSchema.methods.getBalance = async function (session = null) {
-
-    const options = session ? { session } : {};
-
-    const balanceData = await ledgerModel.aggregate([
+    const agg = ledgerModel.aggregate([
         { $match: { account: this._id } },
         {
             $group: {
@@ -76,16 +73,21 @@ accountSchema.methods.getBalance = async function (session = null) {
                 }
             }
         },
-
         {
             $project: {
                 _id: 0,
                 balance: { $subtract: ["$totalCredit", "$totalDebit"] }
             }
         }
-    ], options)
+    ]);
 
-    if (balanceData.length === 0) {
+    if (session) {
+        agg.session(session);
+    }
+
+    const balanceData = await agg;
+
+    if (!balanceData || balanceData.length === 0) {
         return 0;
     }
 

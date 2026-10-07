@@ -111,15 +111,21 @@ async function createTransaction(req, res) {
 
         session.startTransaction();
 
-        const balance = await fromUserAccount.getBalance(session)
+        // 1. Acquire document-level write lock on source account to serialize concurrent transfers (prevent double-spend)
+        await accountModel.findOneAndUpdate(
+            { _id: fromUserAccount._id },
+            { $inc: { __v: 1 } },
+            { session }
+        );
+
+        const balance = await fromUserAccount.getBalance(session);
 
         if (balance < amount) {
             await session.abortTransaction();
             session.endSession();
-            res.status(400).json({
+            return res.status(400).json({
                 message: `Insufficient balance, current balance is ${balance}. Requested amount is ${amount}.`
-            })
-
+            });
         }
 
 
@@ -162,6 +168,11 @@ async function createTransaction(req, res) {
             return res.status(409).json({
                 message: "Duplicate transaction request detected, Transaction is already in progress of completed."
             })
+        }
+        if (error.hasErrorLabel && error.hasErrorLabel('TransientTransactionError')) {
+            return res.status(409).json({
+                message: "Concurrent transaction conflict detected, please retry."
+            });
         }
         return res.status(500).json({
             message: "Transaction is failed due to asystem error, Please try again",
