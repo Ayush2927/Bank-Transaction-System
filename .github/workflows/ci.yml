@@ -2,29 +2,37 @@ name: Bank Ledger CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, "feature/**"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  # ==========================================
-  # JOB 1: Backend Quality Gate (Express + Ledger Engine)
-  # ==========================================
   backend-ci:
     name: Backend Quality Gate (Express + Ledger Engine)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./backend
+    env:
+      MONGO_DB_URI: mongodb://localhost:27017/bank_ledger_ci?replicaSet=rs-test
+      JWT_SECRET: ci_test_jwt_secret_super_secure_12345
+      PORT: 8000
+
     steps:
       - name: Checkout Repository Code
         uses: actions/checkout@v4
+
+      - name: Start Ephemeral MongoDB Replica Set (For ACID Transactions)
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: "7.0"
+          mongodb-replica-set: "rs-test"
 
       - name: Setup Node.js v20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
       - name: Install Backend Dependencies
@@ -41,10 +49,9 @@ jobs:
           node --check src/controller/vault.controller.js
           node --check src/controller/auth.controller.js
 
-  # ==========================================
-  # JOB 2: Frontend Quality Gate (React + Vite)
-  # (Automatically activates when frontend is pushed)
-  # ==========================================
+      - name: Run Integration & Concurrency Test Suite
+        run: npm test
+
   frontend-ci:
     name: Frontend Quality Gate (React + Vite)
     runs-on: ubuntu-latest
@@ -66,13 +73,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend Dependencies
         if: steps.check_frontend.outputs.present == 'true'
         run: cd frontend && npm ci
 
+      - name: Run Oxlint Quality Gate
+        if: steps.check_frontend.outputs.present == 'true'
+        run: cd frontend && npx oxlint
+
       - name: Verify TypeScript & Build
         if: steps.check_frontend.outputs.present == 'true'
         run: cd frontend && npm run build
+
+      - name: Package & Upload Frontend Artifact
+        if: steps.check_frontend.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-production-dist
+          path: frontend/dist
+          retention-days: 7
